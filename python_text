@@ -1,0 +1,1205 @@
+# # # #!/usr/bin/python
+# # # # -*- coding: UTF-8 -*-
+ 
+# # # # for num in range(10,20):  # 迭代 10 到 20 (不包含) 之间的数字
+# # # #    for i in range(2,num): # 根据因子迭代
+# # # #       if num%i == 0:      # 确定第一个因子
+# # # #          j=num/i          # 计算第二个因子
+# # # #          print ('%d 等于 %d * %d' % (num,i,j))
+# # # #          break            # 跳出当前循环
+# # # #    else:                  # 循环的 else 部分
+# # # #       print ('%d 是一个质数' % num)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # # # for i in range (1,10): 
+
+# # # #     for j in range (i,10):
+# # # #         num = i * j 
+# # # #         print(i,"*",j,"=",num)    
+     
+     
+         
+
+
+# # # # for i in range (1,10):
+# # # #     print(f"{i}*{i+1}={i*(i+1)}")
+   
+
+
+# # # #验证一个数 $n$ 是否能被 $2$ 到 $\sqrt{n}$ 之间的任何整数整除。如果都不能整除，它就是质数。
+
+# # # ##找出1到100的素数
+# # # import math
+# # # primes=[]
+
+# # # for i in range (2,101):
+# # #     for j in range (2,int(i**0.5)+1):
+# # #         if i%j == 0:
+# # #             break
+# # #     else:
+# # #         primes.append(i)
+# # # print(primes)
+
+
+
+
+
+
+# # # list1="SPJDIFASD"
+# # # for list1 in list1:
+# # #     if list1 == "I":
+# # #         continue
+# # #     print (list1)
+
+
+
+
+# # a =10
+# # for i in range (1,a):
+# #     if i ==5:
+# #         break
+# #     print(i)    
+
+
+
+# # import math
+# # print(math.sqrt(abs(-10)))
+
+
+
+
+# # import random
+# # i= random.randint(10,13)
+# # print(i)
+
+
+
+
+
+# # a =3.2341341
+# # b = round(a,3)
+# # print(b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# L = ['Google', 'Runoob', 'Taobao']
+# H =  ['SD', 'SD', 'Taobao']
+# print(L[1])
+# print(L[-1])
+# print(L[0:10])
+
+# L.append("NIAHO")
+
+# print(L)
+# print(L==H)
+
+
+
+
+# dic = {
+#     "nihao0": int(input("输入一个参数"))
+# }
+# print(dic)
+
+
+# import time 
+# tikcds= time.time()
+# print(tikcds)
+
+# #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print ("本地时间为 :", localtime)
+
+# help time
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import calendar
+ 
+# cal = calendar.month(2026, 3)
+# print ("以下输出2016年1月份的日历:")
+# print (cal)
+
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print "本地时间为 :", localtime
+
+
+
+
+# def qiuhe (a,b):
+#     return (a*b)
+
+
+
+# print(qiuhe(4,4))
+
+
+
+# from math import *
+# c=sqrt(9)
+# print(c)
+
+# with open(r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment\text.csv", "w", encoding="utf-8-sig") as f:
+#     # 写入表头，列与列之间用英文逗号隔开
+#     f.write("姓名,年龄,城市\n") 
+#     # 写入数据
+#     f.write("张三,25,北京\n")
+#     f.write("李四,30,上海")
+
+
+
+
+
+#     #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+
+# import os, sys
+
+
+# # 查看当前工作目录
+# retval = os.getcwd()
+# print( "当前工作目录为 %s" % retval)
+
+# # 修改当前工作目录
+# os.chdir( r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment" )
+
+# # 查看修改后的工作目录
+# retval = os.getcwd()
+
+# print ("目录修改成功 %s" % retval)
+
+# with open("text.csv", "w", encoding="utf-8-sig") as f:
+
+#     f.write("姓名,年龄,城市\n") 
+
+
+# # 1. 定义类 (设计图)
+# class Employee:
+#     # 构造方法：当你创建实例时，这个方法会自动运行
+#     def __init__(self, name, salary):
+#         self.name = name       # 属性：员工名字
+#         self.salary = salary   # 属性：员工薪水
+
+#     # 自定义方法：员工会做的动作
+#     def info(self):
+#         print(f"员工姓名: {self.name}, 薪水: {self.salary}")
+
+# # 2. 创建对象 (根据设计图生产出具体的员工)
+# emp1 = Employee("张三", 5000)
+# emp2 = Employee("李四", 8000)
+
+# # 3. 使用对象
+# emp1.info()
+# emp2.info()  # 输出: 员工姓名: 张三, 薪水: 5000
+# print(emp2.name)  # 直接访问属性，输出: 李四
+
+
+
+
+
+
+
+class BankAccount:
+    def __init__(self, owner, money):
+        # self.owner 就是把名字贴在当前这个存折上
+        self.owner = owner
+        # self.money 就是把钱存进当前这个存折里
+        self.money = money
+
+    def deposit(self, amount):
+        """存钱"""
+        self.money += amount
+        print(f"【{self.owner}】存入了 {amount} 元，当前余额：{self.money} 元")
+
+    def withdraw(self, amount):
+        """取钱"""
+        if self.money >= amount:
+            self.money -= amount
+            print(f"【{self.owner}】取出了 {amount} 元，当前余额：{self.money} 元")
+        else:
+            print(f"【{self.owner}】余额不足！当前只有 {self.money} 元")
+
+# --- 实例化两个不同的账户 ---
+account_A = BankAccount("张三", 1000)
+account_B = BankAccount("李四", 100)
+
+# 执行操作
+account_A.deposit(500)   # 张三存了 500
+account_B.withdraw(200)  # 李四想取 200（但李四只有 100）# # # #!/usr/bin/python
+# # # # -*- coding: UTF-8 -*-
+ 
+# # # # for num in range(10,20):  # 迭代 10 到 20 (不包含) 之间的数字
+# # # #    for i in range(2,num): # 根据因子迭代
+# # # #       if num%i == 0:      # 确定第一个因子
+# # # #          j=num/i          # 计算第二个因子
+# # # #          print ('%d 等于 %d * %d' % (num,i,j))
+# # # #          break            # 跳出当前循环
+# # # #    else:                  # 循环的 else 部分
+# # # #       print ('%d 是一个质数' % num)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # # # for i in range (1,10): 
+
+# # # #     for j in range (i,10):
+# # # #         num = i * j 
+# # # #         print(i,"*",j,"=",num)    
+     
+     
+         
+
+
+# # # # for i in range (1,10):
+# # # #     print(f"{i}*{i+1}={i*(i+1)}")
+   
+
+
+# # # #验证一个数 $n$ 是否能被 $2$ 到 $\sqrt{n}$ 之间的任何整数整除。如果都不能整除，它就是质数。
+
+# # # ##找出1到100的素数
+# # # import math
+# # # primes=[]
+
+# # # for i in range (2,101):
+# # #     for j in range (2,int(i**0.5)+1):
+# # #         if i%j == 0:
+# # #             break
+# # #     else:
+# # #         primes.append(i)
+# # # print(primes)
+
+
+
+
+
+
+# # # list1="SPJDIFASD"
+# # # for list1 in list1:
+# # #     if list1 == "I":
+# # #         continue
+# # #     print (list1)
+
+
+
+
+# # a =10
+# # for i in range (1,a):
+# #     if i ==5:
+# #         break
+# #     print(i)    
+
+
+
+# # import math
+# # print(math.sqrt(abs(-10)))
+
+
+
+
+# # import random
+# # i= random.randint(10,13)
+# # print(i)
+
+
+
+
+
+# # a =3.2341341
+# # b = round(a,3)
+# # print(b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# L = ['Google', 'Runoob', 'Taobao']
+# H =  ['SD', 'SD', 'Taobao']
+# print(L[1])
+# print(L[-1])
+# print(L[0:10])
+
+# L.append("NIAHO")
+
+# print(L)
+# print(L==H)
+
+
+
+
+# dic = {
+#     "nihao0": int(input("输入一个参数"))
+# }
+# print(dic)
+
+
+# import time 
+# tikcds= time.time()
+# print(tikcds)
+
+# #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print ("本地时间为 :", localtime)
+
+# help time
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import calendar
+ 
+# cal = calendar.month(2026, 3)
+# print ("以下输出2016年1月份的日历:")
+# print (cal)
+
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print "本地时间为 :", localtime
+
+
+
+
+# def qiuhe (a,b):
+#     return (a*b)
+
+
+
+# print(qiuhe(4,4))
+
+
+
+# from math import *
+# c=sqrt(9)
+# print(c)
+
+# with open(r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment\text.csv", "w", encoding="utf-8-sig") as f:
+#     # 写入表头，列与列之间用英文逗号隔开
+#     f.write("姓名,年龄,城市\n") 
+#     # 写入数据
+#     f.write("张三,25,北京\n")
+#     f.write("李四,30,上海")
+
+
+
+
+
+#     #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+
+# import os, sys
+
+
+# # 查看当前工作目录
+# retval = os.getcwd()
+# print( "当前工作目录为 %s" % retval)
+
+# # 修改当前工作目录
+# os.chdir( r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment" )
+
+# # 查看修改后的工作目录
+# retval = os.getcwd()
+
+# print ("目录修改成功 %s" % retval)
+
+# with open("text.csv", "w", encoding="utf-8-sig") as f:
+
+#     f.write("姓名,年龄,城市\n") 
+
+
+# # 1. 定义类 (设计图)
+# class Employee:
+#     # 构造方法：当你创建实例时，这个方法会自动运行
+#     def __init__(self, name, salary):
+#         self.name = name       # 属性：员工名字
+#         self.salary = salary   # 属性：员工薪水
+
+#     # 自定义方法：员工会做的动作
+#     def info(self):
+#         print(f"员工姓名: {self.name}, 薪水: {self.salary}")
+
+# # 2. 创建对象 (根据设计图生产出具体的员工)
+# emp1 = Employee("张三", 5000)
+# emp2 = Employee("李四", 8000)
+
+# # 3. 使用对象
+# emp1.info()
+# emp2.info()  # 输出: 员工姓名: 张三, 薪水: 5000
+# print(emp2.name)  # 直接访问属性，输出: 李四
+
+
+
+
+
+
+
+class BankAccount:
+    def __init__(self, owner, money):
+        # self.owner 就是把名字贴在当前这个存折上
+        self.owner = owner
+        # self.money 就是把钱存进当前这个存折里
+        self.money = money
+
+    def deposit(self, amount):
+        """存钱"""
+        self.money += amount
+        print(f"【{self.owner}】存入了 {amount} 元，当前余额：{self.money} 元")
+
+    def withdraw(self, amount):
+        """取钱"""
+        if self.money >= amount:
+            self.money -= amount
+            print(f"【{self.owner}】取出了 {amount} 元，当前余额：{self.money} 元")
+        else:
+            print(f"【{self.owner}】余额不足！当前只有 {self.money} 元")
+
+# --- 实例化两个不同的账户 ---
+account_A = BankAccount("张三", 1000)
+account_B = BankAccount("李四", 100)
+
+# 执行操作
+account_A.deposit(500)   # 张三存了 500
+account_B.withdraw(200)  # 李四想取 200（但李四只有 100）# # # #!/usr/bin/python
+# # # # -*- coding: UTF-8 -*-
+ 
+# # # # for num in range(10,20):  # 迭代 10 到 20 (不包含) 之间的数字
+# # # #    for i in range(2,num): # 根据因子迭代
+# # # #       if num%i == 0:      # 确定第一个因子
+# # # #          j=num/i          # 计算第二个因子
+# # # #          print ('%d 等于 %d * %d' % (num,i,j))
+# # # #          break            # 跳出当前循环
+# # # #    else:                  # 循环的 else 部分
+# # # #       print ('%d 是一个质数' % num)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # # # for i in range (1,10): 
+
+# # # #     for j in range (i,10):
+# # # #         num = i * j 
+# # # #         print(i,"*",j,"=",num)    
+     
+     
+         
+
+
+# # # # for i in range (1,10):
+# # # #     print(f"{i}*{i+1}={i*(i+1)}")
+   
+
+
+# # # #验证一个数 $n$ 是否能被 $2$ 到 $\sqrt{n}$ 之间的任何整数整除。如果都不能整除，它就是质数。
+
+# # # ##找出1到100的素数
+# # # import math
+# # # primes=[]
+
+# # # for i in range (2,101):
+# # #     for j in range (2,int(i**0.5)+1):
+# # #         if i%j == 0:
+# # #             break
+# # #     else:
+# # #         primes.append(i)
+# # # print(primes)
+
+
+
+
+
+
+# # # list1="SPJDIFASD"
+# # # for list1 in list1:
+# # #     if list1 == "I":
+# # #         continue
+# # #     print (list1)
+
+
+
+
+# # a =10
+# # for i in range (1,a):
+# #     if i ==5:
+# #         break
+# #     print(i)    
+
+
+
+# # import math
+# # print(math.sqrt(abs(-10)))
+
+
+
+
+# # import random
+# # i= random.randint(10,13)
+# # print(i)
+
+
+
+
+
+# # a =3.2341341
+# # b = round(a,3)
+# # print(b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# L = ['Google', 'Runoob', 'Taobao']
+# H =  ['SD', 'SD', 'Taobao']
+# print(L[1])
+# print(L[-1])
+# print(L[0:10])
+
+# L.append("NIAHO")
+
+# print(L)
+# print(L==H)
+
+
+
+
+# dic = {
+#     "nihao0": int(input("输入一个参数"))
+# }
+# print(dic)
+
+
+# import time 
+# tikcds= time.time()
+# print(tikcds)
+
+# #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print ("本地时间为 :", localtime)
+
+# help time
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import calendar
+ 
+# cal = calendar.month(2026, 3)
+# print ("以下输出2016年1月份的日历:")
+# print (cal)
+
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print "本地时间为 :", localtime
+
+
+
+
+# def qiuhe (a,b):
+#     return (a*b)
+
+
+
+# print(qiuhe(4,4))
+
+
+
+# from math import *
+# c=sqrt(9)
+# print(c)
+
+# with open(r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment\text.csv", "w", encoding="utf-8-sig") as f:
+#     # 写入表头，列与列之间用英文逗号隔开
+#     f.write("姓名,年龄,城市\n") 
+#     # 写入数据
+#     f.write("张三,25,北京\n")
+#     f.write("李四,30,上海")
+
+
+
+
+
+#     #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+
+# import os, sys
+
+
+# # 查看当前工作目录
+# retval = os.getcwd()
+# print( "当前工作目录为 %s" % retval)
+
+# # 修改当前工作目录
+# os.chdir( r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment" )
+
+# # 查看修改后的工作目录
+# retval = os.getcwd()
+
+# print ("目录修改成功 %s" % retval)
+
+# with open("text.csv", "w", encoding="utf-8-sig") as f:
+
+#     f.write("姓名,年龄,城市\n") 
+
+
+# # 1. 定义类 (设计图)
+# class Employee:
+#     # 构造方法：当你创建实例时，这个方法会自动运行
+#     def __init__(self, name, salary):
+#         self.name = name       # 属性：员工名字
+#         self.salary = salary   # 属性：员工薪水
+
+#     # 自定义方法：员工会做的动作
+#     def info(self):
+#         print(f"员工姓名: {self.name}, 薪水: {self.salary}")
+
+# # 2. 创建对象 (根据设计图生产出具体的员工)
+# emp1 = Employee("张三", 5000)
+# emp2 = Employee("李四", 8000)
+
+# # 3. 使用对象
+# emp1.info()
+# emp2.info()  # 输出: 员工姓名: 张三, 薪水: 5000
+# print(emp2.name)  # 直接访问属性，输出: 李四
+
+
+
+
+
+
+
+class BankAccount:
+    def __init__(self, owner, money):
+        # self.owner 就是把名字贴在当前这个存折上
+        self.owner = owner
+        # self.money 就是把钱存进当前这个存折里
+        self.money = money
+
+    def deposit(self, amount):
+        """存钱"""
+        self.money += amount
+        print(f"【{self.owner}】存入了 {amount} 元，当前余额：{self.money} 元")
+
+    def withdraw(self, amount):
+        """取钱"""
+        if self.money >= amount:
+            self.money -= amount
+            print(f"【{self.owner}】取出了 {amount} 元，当前余额：{self.money} 元")
+        else:
+            print(f"【{self.owner}】余额不足！当前只有 {self.money} 元")
+
+# --- 实例化两个不同的账户 ---
+account_A = BankAccount("张三", 1000)
+account_B = BankAccount("李四", 100)
+
+# 执行操作
+account_A.deposit(500)   # 张三存了 500
+account_B.withdraw(200)  # 李四想取 200（但李四只有 100）# # # #!/usr/bin/python
+# # # # -*- coding: UTF-8 -*-
+ 
+# # # # for num in range(10,20):  # 迭代 10 到 20 (不包含) 之间的数字
+# # # #    for i in range(2,num): # 根据因子迭代
+# # # #       if num%i == 0:      # 确定第一个因子
+# # # #          j=num/i          # 计算第二个因子
+# # # #          print ('%d 等于 %d * %d' % (num,i,j))
+# # # #          break            # 跳出当前循环
+# # # #    else:                  # 循环的 else 部分
+# # # #       print ('%d 是一个质数' % num)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # # # for i in range (1,10): 
+
+# # # #     for j in range (i,10):
+# # # #         num = i * j 
+# # # #         print(i,"*",j,"=",num)    
+     
+     
+         
+
+
+# # # # for i in range (1,10):
+# # # #     print(f"{i}*{i+1}={i*(i+1)}")
+   
+
+
+# # # #验证一个数 $n$ 是否能被 $2$ 到 $\sqrt{n}$ 之间的任何整数整除。如果都不能整除，它就是质数。
+
+# # # ##找出1到100的素数
+# # # import math
+# # # primes=[]
+
+# # # for i in range (2,101):
+# # #     for j in range (2,int(i**0.5)+1):
+# # #         if i%j == 0:
+# # #             break
+# # #     else:
+# # #         primes.append(i)
+# # # print(primes)
+
+
+
+
+
+
+# # # list1="SPJDIFASD"
+# # # for list1 in list1:
+# # #     if list1 == "I":
+# # #         continue
+# # #     print (list1)
+
+
+
+
+# # a =10
+# # for i in range (1,a):
+# #     if i ==5:
+# #         break
+# #     print(i)    
+
+
+
+# # import math
+# # print(math.sqrt(abs(-10)))
+
+
+
+
+# # import random
+# # i= random.randint(10,13)
+# # print(i)
+
+
+
+
+
+# # a =3.2341341
+# # b = round(a,3)
+# # print(b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# L = ['Google', 'Runoob', 'Taobao']
+# H =  ['SD', 'SD', 'Taobao']
+# print(L[1])
+# print(L[-1])
+# print(L[0:10])
+
+# L.append("NIAHO")
+
+# print(L)
+# print(L==H)
+
+
+
+
+# dic = {
+#     "nihao0": int(input("输入一个参数"))
+# }
+# print(dic)
+
+
+# import time 
+# tikcds= time.time()
+# print(tikcds)
+
+# #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print ("本地时间为 :", localtime)
+
+# help time
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import calendar
+ 
+# cal = calendar.month(2026, 3)
+# print ("以下输出2016年1月份的日历:")
+# print (cal)
+
+
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+# import time
+ 
+# localtime = time.localtime(time.time())
+# print "本地时间为 :", localtime
+
+
+
+
+# def qiuhe (a,b):
+#     return (a*b)
+
+
+
+# print(qiuhe(4,4))
+
+
+
+# from math import *
+# c=sqrt(9)
+# print(c)
+
+# with open(r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment\text.csv", "w", encoding="utf-8-sig") as f:
+#     # 写入表头，列与列之间用英文逗号隔开
+#     f.write("姓名,年龄,城市\n") 
+#     # 写入数据
+#     f.write("张三,25,北京\n")
+#     f.write("李四,30,上海")
+
+
+
+
+
+#     #!/usr/bin/python
+# # -*- coding: UTF-8 -*-
+
+# import os, sys
+
+
+# # 查看当前工作目录
+# retval = os.getcwd()
+# print( "当前工作目录为 %s" % retval)
+
+# # 修改当前工作目录
+# os.chdir( r"C:\Users\uik05843\Desktop\study-files\wuhangy-study-repos\Docker-Project-Deployment" )
+
+# # 查看修改后的工作目录
+# retval = os.getcwd()
+
+# print ("目录修改成功 %s" % retval)
+
+# with open("text.csv", "w", encoding="utf-8-sig") as f:
+
+#     f.write("姓名,年龄,城市\n") 
+
+
+# # 1. 定义类 (设计图)
+# class Employee:
+#     # 构造方法：当你创建实例时，这个方法会自动运行
+#     def __init__(self, name, salary):
+#         self.name = name       # 属性：员工名字
+#         self.salary = salary   # 属性：员工薪水
+
+#     # 自定义方法：员工会做的动作
+#     def info(self):
+#         print(f"员工姓名: {self.name}, 薪水: {self.salary}")
+
+# # 2. 创建对象 (根据设计图生产出具体的员工)
+# emp1 = Employee("张三", 5000)
+# emp2 = Employee("李四", 8000)
+
+# # 3. 使用对象
+# emp1.info()
+# emp2.info()  # 输出: 员工姓名: 张三, 薪水: 5000
+# print(emp2.name)  # 直接访问属性，输出: 李四
+
+
+
+
+
+
+
+class BankAccount:
+    def __init__(self, owner, money):
+        # self.owner 就是把名字贴在当前这个存折上
+        self.owner = owner
+        # self.money 就是把钱存进当前这个存折里
+        self.money = money
+
+    def deposit(self, amount):
+        """存钱"""
+        self.money += amount
+        print(f"【{self.owner}】存入了 {amount} 元，当前余额：{self.money} 元")
+
+    def withdraw(self, amount):
+        """取钱"""
+        if self.money >= amount:
+            self.money -= amount
+            print(f"【{self.owner}】取出了 {amount} 元，当前余额：{self.money} 元")
+        else:
+            print(f"【{self.owner}】余额不足！当前只有 {self.money} 元")
+
+# --- 实例化两个不同的账户 ---
+account_A = BankAccount("张三", 1000)
+account_B = BankAccount("李四", 100)
+
+# 执行操作
+account_A.deposit(500)   # 张三存了 500
+account_B.withdraw(200)  # 李四想取 200（但李四只有 100）
