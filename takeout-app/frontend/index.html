@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍔 外卖订单系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 3em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+        
+        .order-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        
+        .order-item h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .order-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .order-detail {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .stats {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍔 外卖订单系统</h1>
+        
+        <!-- 测试连接 -->
+        <div class="card">
+            <h2>🔌 系统状态</h2>
+            <button onclick="testConnection()">测试 Redis 连接</button>
+            <button onclick="getStats()">查看统计</button>
+            <div id="connectionStatus"></div>
+        </div>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍔 外卖订单系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 3em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+        
+        .order-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        
+        .order-item h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .order-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .order-detail {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .stats {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍔 外卖订单系统</h1>
+        
+        <!-- 测试连接 -->
+        <div class="card">
+            <h2>🔌 系统状态</h2>
+            <button onclick="testConnection()">测试 Redis 连接</button>
+            <button onclick="getStats()">查看统计</button>
+            <div id="connectionStatus"></div>
+        </div>
+        
+        <!-- 添加订单 -->
+        <div class="card">
+            <h2>📝 添加新订单</h2>
+            <div class="form-group">
+                <label>订单号：</label>
+                <input type="text" id="orderId" placeholder="例如：ORD001">
+            </div>
+            <div class="form-group">
+                <label>客户姓名：</label>
+                <input type="text" id="customerName" placeholder="例如：张三">
+            </div>
+            <div class="form-group">
+                <label>食物：</label>
+                <textarea id="food" rows="2" placeholder="例如：汉堡 x2, 可乐 x1, 薯条 x1"></textarea>
+            </div>
+            <div class="form-group">
+                <label>总价：</label>
+                <input type="number" id="price" placeholder="例如：68.00">
+            </div>
+            <button onclick="addOrder()">✅ 添加订单</button>
+            <button onclick="clearForm()">🗑️ 清空表单</button>
+        </div>
+        
+        <!-- 查询订单 -->
+        <div class="card">
+            <h2>🔍 查询订单</h2>
+            <div class="form-group">
+                <label>订单号：</label>
+                <input type="text" id="searchId" placeholder="输入订单号">
+            </div>
+            <button onclick="searchOrder()">查询</button>
+            <div id="orderDetail"></div>
+        </div>
+        
+        <!-- 所有订单 -->
+        <div class="card">
+            <h2>📋 所有订单 <span id="orderCount" class="stats">0</span></h2>
+            <button onclick="loadAllOrders()">🔄 刷新列表</button>
+            <div id="ordersList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        // 测试连接
+        async function testConnection() {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.innerHTML = '正在测试连接...';
+            
+            try {
+                const response = await fetch(`${API_URL}/test-redis`);
+                const data = await response.json();
+                
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ ${data.status}<br>
+                        测试值: ${data.test_result}<br>
+                        Ping: ${data.redis_info.ping}
+                    </div>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ 连接失败: ${error.message}<br>
+                        请确保服务已启动: docker-compose up -d
+                    </div>
+                `;
+            }
+        }
+        
+        // 获取统计
+        async function getStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('connectionStatus');
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        📊 系统统计:<br>
+                        总订单数: ${data.total_orders}<br>
+                        Redis 状态: ${data.redis_status}<br>
+                        数据库大小: ${data.database_size} 键
+                    </div>
+                `;
+            } catch (error) {
+                console.error('获取统计失败:', error);
+            }
+        }
+        
+        // 添加订单
+        async function addOrder() {
+            const orderId = document.getElementById('orderId').value;
+            const customerName = document.getElementById('customerName').value;
+            const food = document.getElementById('food').value;
+            const price = document.getElementById('price').value;
+            
+            if (!orderId || !customerName || !food || !price) {
+                alert('请填写所有字段！');
+                return;
+            }
+            
+            const order = {
+                id: orderId,
+                customer: customerName,
+                food: food,
+                price: parseFloat(price),
+                status: 'pending'
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(order)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    clearForm();
+                    loadAllOrders();
+                } else {
+                    alert(`❌ 添加失败: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`❌ 错误: ${error.message}`);
+            }
+        }
+        
+        // 查询订单
+        async function searchOrder() {
+            const orderId = document.getElementById('searchId').value;
+            
+            if (!orderId) {
+                alert('请输入订单号！');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/order/${orderId}`);
+                const data = await response.json();
+                
+                const detailDiv = document.getElementById('orderDetail');
+                
+                if (response.ok) {
+                    detailDiv.innerHTML = `
+                        <div class="order-detail">
+                            <h3>订单详情</h3>
+                            <p><strong>订单号：</strong> ${data.id}</p>
+                            <p><strong>客户：</strong> ${data.customer}</p>
+                            <p><strong>食物：</strong> ${data.food}</p>
+                            <p><strong>价格：</strong> ¥${data.price}</p>
+                            <p><strong>状态：</strong> ${data.status}</p>
+                            <p><strong>创建时间：</strong> ${data.created_at}</p>
+                            <button onclick="deleteOrder('${data.id}')" class="delete-btn">🗑️ 删除订单</button>
+                        </div>
+                    `;
+                } else {
+                    detailDiv.innerHTML = `<div class="status error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+            }
+        }
+        
+        // 删除订单
+        async function deleteOrder(orderId) {
+            if (!confirm(`确定要删除订单 ${orderId} 吗？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/order/${orderId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    loadAllOrders();
+                    document.getElementById('orderDetail').innerHTML = '';
+                    document.getElementById('searchId').value = '';
+                } else {
+                    alert(`❌ 删除失败: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`❌ 错误: ${error.message}`);
+            }
+        }
+        
+        // 加载所有订单
+        async function loadAllOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders`);
+                const data = await response.json();
+                
+                const ordersDiv = document.getElementById('ordersList');
+                const orderCount = document.getElementById('orderCount');
+                
+                orderCount.textContent = data.total;
+                
+                if (data.total === 0) {
+                    ordersDiv.innerHTML = '<p style="color: #666;">暂无订单，添加第一个订单吧！</p>';
+                    return;
+                }
+                
+                ordersDiv.innerHTML = '';
+                data.orders.forEach(order => {
+                    const orderElement = document.createElement('div');
+                    orderElement.className = 'order-item';
+                    orderElement.innerHTML = `
+                        <h3>📦 订单 #${order.id}</h3>
+                        <p><strong>客户：</strong> ${order.customer}</p>
+                        <p><strong>食物：</strong> ${order.food}</p>
+                        <p><strong>价格：</strong> ¥${order.price}</p>
+                        <p><strong>状态：</strong> ${order.status}</p>
+                        <p><strong>时间：</strong> ${order.created_at}</p>
+                        <button onclick="deleteOrder('${order.id}')" class="delete-btn">🗑️ 删除订单</button>
+                    `;
+                    ordersDiv.appendChild(orderElement);
+                });
+            } catch (error) {
+                console.error('加载订单失败:', error);
+            }
+        }
+        
+        // 清空表单
+        function clearForm() {
+            document.getElementById('orderId').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('food').value = '';
+            document.getElementById('price').value = '';
+        }
+        
+        // 页面加载时自动加载所有订单
+        loadAllOrders();
+    </script>
+</body>
+</html>

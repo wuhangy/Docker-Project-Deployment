@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. 数据库服务
+  db:
+    image: redis:alpine
+    container_name: takeout-db
+    volumes:
+      - ./data:/data  # 数据持久化：把容器里的数据存到本地 data 文件夹
+    command: redis-server --appendonly yes # 开启 AOF 持久化模式
+    networks:
+      - takeout-net
+
+  # 2. 后端 API 服务
+  backend:
+    build: ./backend
+    container_name: takeout-api
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - takeout-net
+
+  # 3. 前端 Web 服务
+  frontend:
+    build: ./frontend
+    container_name: takeout-web
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - takeout-net
+
+networks:
+  takeout-net:
+    driver: bridge
