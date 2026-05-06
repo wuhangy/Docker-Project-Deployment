@@ -1,0 +1,1485 @@
+wuahngy 2001 redis学习笔记
+## 一、 五大核心数据类型实战
+Redis 的强大之处在于其丰富的数据结构，每种结构都对应不同的业务场景。
+
+| 类型 | 特性 | 典型应用场景 | 实战指令例子[cite: 1, 2, 3] |
+| : | : | : | : |
+| String | 字符串，二进制安全，最大 512MB | 缓存、计数器、分布式锁 | `SETNX lock:01 "uuid" EX 30` |
+| Hash | 键值对集合，适合存储对象 | 用户信息、商品详情 | `HSET user:1001 name "Jack" age 18` |
+| List | 双向链表，按插入顺序排序 | 消息队列、最新消息排行 | `LPUSH queue "job1"`; `RPOP queue` |
+| Set | 无序去重集合，支持集合运算 | 共同好友、点赞列表 | `SINTER follow:A follow:B` (交集) |
+| ZSet | 有序集合，每个元素带 Score | 排行榜、带权重的任务队列 | `ZADD rank 100 "u1" 90 "u2"` |
+
+以下针对 Redis 的 5 种核心数据类型，分别给出一个**写 + 读**的完整实战例子。
+### 1. String – 分布式锁 + 获取锁状态
+**场景**：抢购时锁定商品
+```bash
+# 写：加锁，key为锁，value为客户端ID，过期10秒
+SETNX lock:product:1001 "client:uuid" 
+EXPIRE lock:product:1001 10
+# 读：查看锁是否被自己持有
+GET lock:product:1001
+```
+### 2. Hash – 存储并读取用户信息
+**场景**：用户详情页
+```bash
+# 写：存储用户ID 2001 的信息
+HSET user:2001 name "张三" age 28 city "上海"
+# 读：获取该用户的所有字段
+HGETALL user:2001
+```
+### 3. List – 消息队列（生产 + 消费）
+**场景**：发送邮件任务队列
+
+```bash
+# 写：生产者将任务推入队列左侧
+LPUSH email:queue "sendEmail:123@qq.com"
+LPUSH email:queue "sendEmail:456@qq.com"
+
+# 读：消费者从右侧取出任务（先进先出）
+RPOP email:queue
+``
+### 4. Set – 点赞用户集合（添加 + 检查）
+**场景**：文章点赞去重
+
+```bash
+# 写：用户 u10086 对文章 art:888 点赞
+SADD art:888:likes "u10086"
+# 读：检查该用户是否已点赞
+SISMEMBER art:888:likes "u10086"
+```
+
+### 5. ZSet – 排行榜（写入分数 + 读取排行）
+**场景**：游戏积分榜
+
+```bash
+# 写：用户 userA 积分 1500， userB 积分 2000
+ZADD game:rank 1500 "userA" 2000 "userB"
+
+# 读：按分数从高到低取前2名（降序）
+ZREVRANGE game:rank 0 1 WITHSCORES
+
+
+
+
+
+## 二、 核心机制：持久化与高可用
+由于 Redis 数据存储在内存中，断电即失，因此必须通过持久化机制将数据写入磁盘。
+
+### 1. 持久化方式对比
+   RDB (快照)：周期性地将全量数据写入磁盘。优点是恢复大数据集速度快；缺点是容易丢失两次快照之间的数据。
+# ========== RDB 核心配置 ==========
+
+# 触发条件：在指定时间间隔内，达到指定次数的写操作
+save 900 1      # 900秒（15分钟）内至少1次修改
+save 300 10     # 300秒（5分钟）内至少10次修改
+save 60 10000   # 60秒内至少10000次修改
+
+# RDB 文件名
+dbfilename "dump.rdb"
+
+# RDB 文件保存目录
+dir "/var/lib/redis"
+
+# 压缩 RDB 文件（默认 yes，压缩消耗 CPU）
+rdbcompression yes
+
+# 校验 RDB 文件（防止损坏）
+rdbchecksum yes
+
+# 如果 RDB 持久化失败，是否禁止写入（默认 yes）
+stop-writes-on-bgsave-error yes
+
+
+# 方式1：阻塞式保存（生产环境禁用）
+SAVE
+
+# 方式2：后台异步保存（推荐）
+BGSAVE
+
+# 查看最后一次保存时间
+LASTSAVE
+
+# 恢复步骤：
+# 1. 停止 Redis 服务
+redis-cli shutdown
+
+# 2. 将 dump.rdb 文件复制到 Redis 工作目录
+cp /backup/dump.rdb /var/lib/redis/
+
+# 3. 启动 Redis（自动加载）
+redis-server
+
+AOF (日志)：记录每一条写命令。优点是数据安全性极高（通常设置每秒同步一次）；缺点是文件体积大，恢复速度慢。
+# ========== AOF 核心配置 ==========
+
+# 启用 AOF（默认 no）
+appendonly yes
+
+# AOF 文件名
+appendfilename "appendonly.aof"
+
+# 同步策略（三大级别）
+# always   : 每次写命令都同步（最安全，最慢）
+# everysec : 每秒同步一次（推荐，性能与安全平衡）
+# no       : 由操作系统决定同步时机（最快，易丢数据）
+appendfsync everysec
+
+# 是否在 BGSAVE 或 BGREWRITEAOF 时阻止主进程 fsync()
+no-appendfsync-on-rewrite no
+
+# AOF 重写触发条件
+auto-aof-rewrite-percentage 100   # 文件增长 100% 时触发
+auto-aof-rewrite-min-size 64mb    # 最小文件大小 64MB
+
+# AOF 加载时忽略最后一条不完整命令
+aof-load-truncated yes
+
+# 使用 RDB 作为 AOF 重写的基底（Redis 7.0+）
+aof-use-rdb-preamble yes
+
+
+# 手动触发 AOF 重写（优化文件大小）
+BGREWRITEAOF
+
+# 查看 AOF 状态
+redis-cli INFO persistence | grep aof
+
+# 关闭 AOF（临时）
+CONFIG SET appendonly no
+
+# 开启 AOF（临时）
+CONFIG SET appendonly yes
+
+# 强行同步 AOF 文件（性能差，慎用）
+CONFIG SET appendfsync always
+
+# 恢复步骤：
+# 1. 停止 Redis
+redis-cli shutdown
+
+# 2. 备份当前 AOF（可选）
+cp /var/lib/redis/appendonly.aof /backup/
+
+# 3. 如果 AOF 文件损坏，尝试修复
+redis-check-aof --fix appendonly.aof
+
+# 4. 启动 Redis（自动加载 AOF）
+redis-server
+
+
+
+
+
+
+
+
+
+### 2. 高可用架构
+   主从复制 (Replication)：实现读写分离，主节点负责写，从节点负责读。
+
+   哨兵 (Sentinel)：监控主从状态，实现主节点故障时的自动切换。
+   集群 (Cluster)：数据分片存储在多个节点上，解决单机内存上限问题。
+好的，我先**解释每个高可用架构是干什么的（核心目的）**，然后再给出**具体的实现操作**。
+
+---
+
+## 一、主从复制（Replication）
+
+### 它是干什么的？
+
+**核心目的：解决「读压力大」和「数据冗余」问题**
+
+- **读写分离**：主节点负责写，从节点负责读，分担读请求压力
+- **数据备份**：从节点作为热备份，主节点挂了可手动切换
+- **缺点**：主节点故障时**无法自动切换**，需要人工介入
+
+**通俗理解**：主节点是"写数据库"，从节点是"只读副本"，类似 MySQL 的主从复制。
+
+---
+
+### 实现操作
+
+#### 1. 环境准备（3台机器或端口）
+
+```bash
+# 主节点：127.0.0.1:6379
+# 从节点1：127.0.0.1:6380
+# 从节点2：127.0.0.1:6381
+```
+
+#### 2. 启动主节点
+
+```bash
+# 启动主节点（默认6379）
+redis-server --port 6379 --daemonize yes
+```
+
+#### 3. 启动从节点并指向主节点
+
+**方式一：命令行配置**
+
+```bash
+# 启动从节点1（6380）
+redis-server --port 6380 --daemonize yes
+
+# 连接从节点1，设置为从节点
+redis-cli -p 6380 REPLICAOF 127.0.0.1 6379
+
+# 启动从节点2（6381）
+redis-server --port 6381 --daemonize yes
+
+# 连接从节点2，设置为从节点
+redis-cli -p 6381 REPLICAOF 127.0.0.1 6379
+```
+
+**方式二：配置文件（推荐生产环境）**
+
+```bash
+# 创建配置文件 redis-6380.conf
+cat > /tmp/redis-6380.conf <<EOF
+port 6380
+daemonize yes
+replicaof 127.0.0.1 6379
+EOF
+
+# 启动从节点
+redis-server /tmp/redis-6380.conf
+```
+
+#### 4. 验证主从复制
+
+```bash
+# 在主节点写入数据
+redis-cli -p 6379 SET name "张三"
+
+# 在从节点读取数据（应该能读到）
+redis-cli -p 6380 GET name
+# 输出: "张三"
+
+# 查看复制状态
+redis-cli -p 6379 INFO replication
+# 输出显示 connected_slaves:2
+
+redis-cli -p 6380 INFO replication
+# 输出显示 role:slave, master_link_status:up
+```
+
+#### 5. Python 验证代码
+
+```python
+import redis
+
+# 连接主节点（写）
+master = redis.Redis(host='localhost', port=6379, decode_responses=True)
+master.set("counter", 100)
+print("主节点写入: counter = 100")
+
+# 连接从节点（读）
+slave = redis.Redis(host='localhost', port=6380, decode_responses=True)
+value = slave.get("counter")
+print(f"从节点读取: counter = {value}")
+
+# 验证从节点是只读的（写入会报错）
+try:
+    slave.set("test", "value")
+except redis.exceptions.ResponseError as e:
+    print(f"从节点无法写入: {e}")
+```
+
+---
+
+## 二、哨兵模式（Sentinel）
+
+### 它是干什么的？
+
+**核心目的：解决「主节点挂了没人管」的问题**
+
+- **自动故障转移**：主节点挂了，哨兵自动选一个新主节点
+- **监控告警**：实时监控主从节点健康状态
+- **客户端发现**：客户端连接哨兵，哨兵告诉客户端当前主节点是谁
+
+**通俗理解**：哨兵是"监控系统"，它会盯着主节点，主节点死了就自动提拔一个从节点当老大。
+
+**典型部署**：1个主节点 + 2个从节点 + 3个哨兵（奇数个，避免脑裂）
+
+---
+
+### 实现操作
+
+#### 1. 准备主从节点（3个 Redis 实例）
+
+```bash
+# 创建数据目录
+mkdir -p /tmp/redis/{6379,6380,6381}
+
+# 启动主节点（6379）
+redis-server --port 6379 --daemonize yes --dir /tmp/redis/6379
+
+# 启动从节点1（6380），指向主节点
+redis-server --port 6380 --daemonize yes --dir /tmp/redis/6380 --replicaof 127.0.0.1 6379
+
+# 启动从节点2（6381），指向主节点
+redis-server --port 6381 --daemonize yes --dir /tmp/redis/6381 --replicaof 127.0.0.1 6379
+```
+
+#### 2. 配置哨兵（3个哨兵实例）
+
+```bash
+# 创建哨兵配置文件（26379）
+cat > /tmp/sentinel-26379.conf <<EOF
+port 26379
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 60000
+sentinel parallel-syncs mymaster 1
+logfile /tmp/sentinel-26379.log
+EOF
+
+# 创建哨兵2（26380）
+cat > /tmp/sentinel-26380.conf <<EOF
+port 26380
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 60000
+sentinel parallel-syncs mymaster 1
+logfile /tmp/sentinel-26380.log
+EOF
+
+# 创建哨兵3（26381）
+cat > /tmp/sentinel-26381.conf <<EOF
+port 26381
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 60000
+sentinel parallel-syncs mymaster 1
+logfile /tmp/sentinel-26381.log
+EOF
+```
+
+#### 3. 启动哨兵
+
+```bash
+# 启动3个哨兵
+redis-sentinel /tmp/sentinel-26379.conf
+redis-sentinel /tmp/sentinel-26380.conf
+redis-sentinel /tmp/sentinel-26381.conf
+
+# 验证哨兵状态
+redis-cli -p 26379 SENTINEL masters
+redis-cli -p 26379 SENTINEL slaves mymaster
+redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+```
+
+#### 4. 测试自动故障转移
+
+```bash
+# 1. 查看当前主节点（应该是6379）
+redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+
+# 2. 模拟主节点宕机
+redis-cli -p 6379 SHUTDOWN NOSAVE
+
+# 3. 等待15秒后，查看新主节点
+sleep 15
+redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+# 输出变成 6380 或 6381（哨兵自动选了一个新主）
+
+# 4. 验证旧主恢复后自动变成从节点
+redis-server --port 6379 --daemonize yes --dir /tmp/redis/6379
+sleep 5
+redis-cli -p 6379 INFO replication
+# 输出显示 role:slave（自动成为新主的从节点）
+```
+
+#### 5. Python 自动故障转移示例
+
+```python
+import redis
+from redis.sentinel import Sentinel
+import time
+
+# 连接哨兵
+sentinel = Sentinel(
+    [('localhost', 26379), ('localhost', 26380), ('localhost', 26381)],
+    socket_timeout=0.1
+)
+
+# 获取当前主节点
+master = sentinel.master_for('mymaster', decode_responses=True)
+print(f"当前主节点: {master.connection_pool.connection_kwargs['host']}:{master.connection_pool.connection_kwargs['port']}")
+
+# 写入数据
+master.set('test_key', 'test_value')
+print("数据已写入主节点")
+
+# 模拟主节点宕机
+print("\n模拟主节点宕机...")
+import subprocess
+subprocess.run("redis-cli -p 6379 SHUTDOWN NOSAVE", shell=True)
+
+# 等待故障转移
+print("等待哨兵故障转移...")
+time.sleep(15)
+
+# 重新获取主节点（自动切换到新主）
+new_master = sentinel.master_for('mymaster', decode_responses=True)
+new_host = new_master.connection_pool.connection_kwargs['host']
+new_port = new_master.connection_pool.connection_kwargs['port']
+print(f"新主节点: {new_host}:{new_port}")
+
+# 验证数据还在
+value = new_master.get('test_key')
+print(f"数据验证: test_key = {value}")
+```
+
+---
+
+## 三、集群模式（Cluster）
+
+### 它是干什么的？
+
+**核心目的：解决「单机内存不够」和「单机写性能瓶颈」问题**
+
+- **数据分片**：数据自动分散到多个节点，每个节点存一部分（16384个槽位）
+- **水平扩展**：加机器就能扩容，支撑 TB 级数据
+- **高可用**：每个主节点有从节点，主节点挂了自动切换
+
+**通俗理解**：集群 = 多个 Redis 实例组成一个小团队，每个人负责一部分数据（槽位），团队合起来存全量数据。
+
+**典型部署**：至少 6 个节点（3 主 3 从）
+
+---
+
+### 实现操作
+
+#### 1. 启动 6 个 Redis 实例（3主3从）
+
+```bash
+# 创建数据目录
+mkdir -p /tmp/cluster/{7000,7001,7002,7003,7004,7005}
+
+# 批量启动 6 个节点
+for port in 7000 7001 7002 7003 7004 7005; do
+  cat > /tmp/cluster/$port/redis.conf <<EOF
+port $port
+cluster-enabled yes
+cluster-config-file nodes-$port.conf
+cluster-node-timeout 5000
+appendonly yes
+daemonize yes
+pidfile /tmp/cluster/$port/redis.pid
+logfile /tmp/cluster/$port/redis.log
+dir /tmp/cluster/$port
+EOF
+
+  redis-server /tmp/cluster/$port/redis.conf
+done
+
+# 验证 6 个进程都启动了
+ps aux | grep redis-server | grep -E "700[0-5]"
+```
+
+#### 2. 创建集群（分配槽位，建立主从关系）
+
+```bash
+# 使用 redis-cli 创建集群
+redis-cli --cluster create \
+  127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 \
+  127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 \
+  --cluster-replicas 1
+
+# 系统会提示分配方案，输入 yes 确认
+```
+
+#### 3. 验证集群
+
+```bash
+# 查看集群信息
+redis-cli -c -p 7000 CLUSTER INFO
+
+# 查看节点信息
+redis-cli -c -p 7000 CLUSTER NODES
+
+# 查看槽位分布
+redis-cli -c -p 7000 CLUSTER SLOTS
+
+# 测试写入（会自动路由）
+redis-cli -c -p 7000 SET user:1001 "张三"
+redis-cli -c -p 7002 GET user:1001  # 到不同端口也能读到
+```
+
+#### 4. 测试数据自动路由
+
+```bash
+# 写入数据，Redis 会自动计算槽位并路由到对应节点
+redis-cli -c -p 7000 SET name "张三"
+# -> OK
+
+# 连接到 7002 端口读取（不是同一个节点，但集群会自动重定向）
+redis-cli -c -p 7002 GET name
+# -> "张三"（自动重定向到 7000）
+
+# 查看 key 所在的槽位
+redis-cli -p 7000 CLUSTER KEYSLOT name
+```
+
+#### 5. 测试故障转移
+
+```bash
+# 查看当前主从关系
+redis-cli -p 7000 CLUSTER NODES
+
+# 模拟主节点 7000 宕机
+redis-cli -p 7000 SHUTDOWN NOSAVE
+
+# 等待15秒后，查看集群状态
+redis-cli -p 7001 CLUSTER NODES
+# 7000 对应的从节点会自动提升为主节点
+
+# 恢复 7000（会自动变成新主的从节点）
+redis-server /tmp/cluster/7000/redis.conf
+sleep 5
+redis-cli -p 7000 CLUSTER NODES  # 现在 role 是 slave
+```
+
+#### 6. Python 操作集群
+
+```python
+from redis.cluster import RedisCluster
+
+# 连接集群（只需连接任意一个节点）
+cluster = RedisCluster(
+    startup_nodes=[{'host': '127.0.0.1', 'port': 7000}],
+    decode_responses=True
+)
+
+# 写入数据（自动路由到正确节点）
+cluster.set("product:1001", "手机")
+cluster.set("product:1002", "电脑")
+print("批量写入成功")
+
+# 读取数据
+product = cluster.get("product:1001")
+print(f"product:1001 = {product}")
+
+# 查看 key 所在的槽位
+slot = cluster.keyslot("product:1001")
+print(f"product:1001 在槽位 {slot}")
+
+# 批量操作（使用 hash tag 确保在同一槽位）
+# {user:123}:profile 和 {user:123}:orders 会在同一节点
+cluster.set("{user:123}:profile", "张三")
+cluster.set("{user:123}:orders", "订单数据")
+print("使用 hash tag 确保数据在同一节点")
+
+# 查看集群信息
+info = cluster.cluster_info()
+print(f"集群状态: {info['cluster_state']}")
+print(f"已分配槽位: {info['cluster_slots_assigned']}/16384")
+```
+
+---
+
+## 四、三种架构对比总结
+
+| 架构 | 解决什么问题 | 适用场景 | 复杂度 |
+|------|-------------|----------|--------|
+| **主从复制** | 读压力大，需要读写分离 | 数据量小(<50GB)，可接受手动切换 | ⭐ |
+| **哨兵模式** | 主节点挂了自己恢复 | 数据量小(<100GB)，需要自动故障转移 | ⭐⭐ |
+| **集群模式** | 数据量大，水平扩展 | 数据量>100GB，或 QPS > 10万 | ⭐⭐⭐ |
+
+---
+
+## 五、快速上手指南（一键测试脚本）
+
+```bash
+#!/bin/bash
+# redis_high_availability_test.sh
+
+echo "1. 测试主从复制"
+redis-cli -p 6379 SET test "hello"
+redis-cli -p 6380 GET test  # 应该返回 hello
+
+echo "2. 测试哨兵故障转移"
+redis-cli -p 6379 SHUTDOWN NOSAVE
+sleep 15
+NEW_MASTER=$(redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster | head -1)
+echo "新主节点: $NEW_MASTER"
+
+echo "3. 测试集群"
+redis-cli -c -p 7000 SET cluster_test "ok"
+redis-cli -c -p 7002 GET cluster_test  # 应该返回 ok
+```
+
+需要我继续补充 **性能优化** 或 **故障排查实战** 吗？
+
+
+
+
+# Redis 性能优化完全指南
+
+我先解释**性能优化是干什么的**，然后给出**具体的优化操作**。
+
+---
+
+## 一、性能优化是干什么的？
+
+### 核心目的
+- **降低延迟**：让 Redis 响应更快（从毫秒级降到微秒级）
+- **提高吞吐**：单机 QPS 从几万提升到十几万
+- **避免阻塞**：防止慢查询导致整个服务卡住
+- **合理利用资源**：CPU、内存、网络、磁盘的平衡
+
+### 常见的性能问题
+- 慢查询阻塞（KEYS *、大 key 删除）
+- 内存碎片过高
+- 网络延迟大
+- 持久化影响性能
+- 连接数过多
+- 数据过期策略不合理
+
+---
+
+## 二、优化分类总览
+
+| 优化类别 | 优化目标 | 预期效果 |
+|---------|---------|---------|
+| 命令优化 | 避免 O(N) 操作 | 延迟降低 50-80% |
+| 内存优化 | 减少内存占用 | 内存节省 30-60% |
+| 连接优化 | 减少连接开销 | QPS 提升 2-3倍 |
+| 配置优化 | 系统参数调优 | 稳定性提升 |
+| 架构优化 | 读写分离/分片 | 吞吐量提升 10倍 |
+
+---
+
+## 三、命令优化（最重要）
+
+### 1. 禁止使用危险命令
+
+**问题命令及替代方案：**
+
+```python
+# ❌ 危险：O(N) 扫描全库
+r.keys("user:*")  # 数据量大时阻塞 Redis
+
+# ✅ 安全：使用 SCAN 游标迭代
+def scan_keys(pattern, count=100):
+    cursor = 0
+    keys = []
+    while True:
+        cursor, batch = r.scan(cursor, match=pattern, count=count)
+        keys.extend(batch)
+        if cursor == 0:
+            break
+    return keys
+
+# ❌ 危险：查看所有配置（信息量大）
+r.info()
+
+# ✅ 安全：只查看需要的部分
+r.info('memory')      # 只查看内存
+r.info('stats')       # 只查看统计
+r.info('replication') # 只查看复制
+
+# ❌ 危险：清空所有库
+r.flushall()
+
+# ✅ 安全：只清空当前库（测试环境）
+r.flushdb()
+```
+
+### 2. 大 Key 处理
+
+**识别大 Key：**
+
+```bash
+# 方式1：使用 redis-cli 扫描
+redis-cli --bigkeys
+
+# 方式2：使用 MEMORY USAGE 命令
+redis-cli MEMORY USAGE user:1001
+
+# 方式3：使用 DEBUG OBJECT（慎用）
+redis-cli DEBUG OBJECT user:1001
+```
+
+**Python 检测大 Key：**
+
+```python
+import redis
+
+def find_big_keys(host='localhost', port=6379, threshold=1024*1024):
+    """找出超过 threshold 字节的大 key"""
+    r = redis.Redis(host=host, port=port, decode_responses=True)
+    
+    cursor = 0
+    big_keys = []
+    
+    while True:
+        cursor, keys = r.scan(cursor, count=1000)
+        for key in keys:
+            # 估算内存大小
+            mem = r.memory_usage(key)
+            if mem and mem > threshold:
+                key_type = r.type(key)
+                big_keys.append({
+                    'key': key,
+                    'type': key_type,
+                    'size': mem,
+                    'size_mb': mem / 1024 / 1024
+                })
+        if cursor == 0:
+            break
+    
+    # 按大小排序
+    big_keys.sort(key=lambda x: x['size'], reverse=True)
+    
+    for bk in big_keys[:10]:
+        print(f"大 Key: {bk['key']} | 类型: {bk['type']} | {bk['size_mb']:.2f} MB")
+    
+    return big_keys
+
+# 执行检测
+big_keys = find_big_keys(threshold=10*1024*1024)  # 10MB
+```
+
+**大 Key 处理策略：**
+
+```python
+# 策略1：分批删除 Hash 大 key
+def delete_big_hash(key, batch_size=1000):
+    """分批删除大 Hash"""
+    r = redis.Redis(decode_responses=True)
+    
+    # 获取所有字段
+    fields = r.hkeys(key)
+    total = len(fields)
+    
+    # 分批删除
+    for i in range(0, total, batch_size):
+        batch = fields[i:i+batch_size]
+        r.hdel(key, *batch)
+        print(f"已删除 {i+len(batch)}/{total}")
+    
+    # 最终删除 key
+    r.delete(key)
+    print(f"Hash {key} 已完全删除")
+
+# 策略2：拆分大 Set 为多个小 Set
+def split_big_set(old_key, new_prefix, max_size=10000):
+    """拆分大 Set"""
+    r = redis.Redis(decode_responses=True)
+    
+    cursor = 0
+    part_num = 1
+    
+    while True:
+        cursor, members = r.sscan(old_key, cursor, count=max_size)
+        if members:
+            new_key = f"{new_prefix}:{part_num}"
+            r.sadd(new_key, *members)
+            part_num += 1
+        
+        if cursor == 0:
+            break
+    
+    # 删除原 key
+    r.delete(old_key)
+    print(f"已将 {old_key} 拆分为 {part_num-1} 个部分")
+
+# 策略3：使用 UNLINK 异步删除（非阻塞）
+def async_delete(key):
+    """异步删除，不阻塞主线程"""
+    r = redis.Redis()
+    r.unlink(key)  # 比 delete 快，不阻塞
+    print(f"已异步删除 {key}")
+```
+
+### 3. 慢查询优化
+
+**配置慢查询：**
+
+```bash
+# redis.conf 配置
+slowlog-log-slower-than 10000  # 记录超过 10ms 的命令（微秒）
+slowlog-max-len 128            # 最多保留 128 条
+
+# 动态配置
+redis-cli CONFIG SET slowlog-log-slower-than 10000
+redis-cli CONFIG SET slowlog-max-len 256
+```
+
+**监控慢查询：**
+
+```python
+import redis
+import time
+
+def monitor_slow_queries(host='localhost', port=6379):
+    r = redis.Redis(host=host, port=port, decode_responses=True)
+    
+    while True:
+        # 获取慢查询
+        slow_logs = r.slowlog_get(10)
+        
+        for log in slow_logs:
+            duration = log['duration'] / 1000  # 转换为毫秒
+            command = ' '.join(log['command'])
+            
+            if duration > 10:  # 超过 10ms
+                print(f"⚠ 慢查询: {duration:.2f}ms | {command}")
+        
+        # 重置慢查询日志
+        r.slowlog_reset()
+        
+        time.sleep(60)  # 每分钟检查一次
+
+# 执行监控
+monitor_slow_queries()
+```
+
+---
+
+## 四、内存优化
+
+### 1. 合理设置过期时间
+
+```python
+import redis
+
+r = redis.Redis(decode_responses=True)
+
+# ❌ 错误：永不过期（可能导致内存耗尽）
+r.set("session:abc123", "user_data")
+
+# ✅ 正确：设置过期时间
+r.setex("session:abc123", 3600, "user_data")  # 1小时过期
+r.set("session:xyz789", "user_data", ex=1800)  # 30分钟过期
+
+# ✅ 批量设置过期
+def set_with_ttl(data_dict, ttl):
+    """批量设置带过期时间的 key"""
+    pipe = r.pipeline()
+    for key, value in data_dict.items():
+        pipe.setex(key, ttl, value)
+    pipe.execute()
+
+# 使用示例
+sessions = {
+    "user:1001": "session_data_1",
+    "user:1002": "session_data_2"
+}
+set_with_ttl(sessions, 7200)  # 2小时过期
+```
+
+### 2. 使用合适的数据结构
+
+```python
+# ❌ 错误：用 String 存储多个字段
+r.set("user:1001:name", "张三")
+r.set("user:1001:age", "25")
+r.set("user:1001:city", "北京")
+
+# ✅ 正确：用 Hash 存储对象
+r.hset("user:1001", mapping={
+    "name": "张三",
+    "age": "25",
+    "city": "北京"
+})
+
+# 内存对比（实测 Hash 节省 30-50% 内存）
+```
+
+### 3. 压缩存储
+
+```python
+import json
+import zlib
+
+class CompressedRedis:
+    """透明压缩存储（适合大 value）"""
+    
+    def __init__(self, redis_client, compress_threshold=1024):
+        self.r = redis_client
+        self.threshold = compress_threshold  # 超过 1KB 才压缩
+    
+    def set(self, key, value, **kwargs):
+        # 序列化
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value)
+        
+        # 判断是否需要压缩
+        if len(value) > self.threshold:
+            compressed = zlib.compress(value.encode())
+            value = b'COMPRESSED:' + compressed
+            compressed_flag = True
+        else:
+            compressed_flag = False
+        
+        return self.r.set(key, value, **kwargs)
+    
+    def get(self, key):
+        value = self.r.get(key)
+        if value is None:
+            return None
+        
+        # 判断是否压缩过
+        if value.startswith(b'COMPRESSED:'):
+            compressed = value[len(b'COMPRESSED:'):]
+            value = zlib.decompress(compressed).decode()
+        
+        # 尝试解析 JSON
+        try:
+            return json.loads(value)
+        except:
+            return value
+
+# 使用示例
+r = redis.Redis(decode_responses=False)
+compressed_r = CompressedRedis(r)
+
+# 大 value 自动压缩
+compressed_r.set("large_data", {"key": "x" * 10000}, ex=3600)
+data = compressed_r.get("large_data")
+print(f"压缩后内存节省约 70%")
+```
+
+### 4. 内存碎片整理
+
+```bash
+# 查看内存碎片率
+redis-cli INFO memory | grep mem_fragmentation_ratio
+# mem_fragmentation_ratio:1.25 (大于1.5需要整理)
+
+# 开启自动碎片整理（Redis 4.0+）
+redis-cli CONFIG SET activedefrag yes
+redis-cli CONFIG SET active-defrag-threshold-lower 10  # 碎片率超过10%开始
+redis-cli CONFIG SET active-defrag-cycle-min 25        # CPU 最小占用 25%
+redis-cli CONFIG SET active-defrag-cycle-max 75        # CPU 最大占用 75%
+
+# 手动整理（重启时自动整理）
+redis-cli DEBUG MEMORY PURGE
+```
+
+---
+
+## 五、连接优化
+
+### 1. 使用连接池
+
+```python
+import redis
+from redis.connection import BlockingConnectionPool
+
+# ❌ 错误：每次请求创建新连接
+def bad_get(key):
+    r = redis.Redis()
+    return r.get(key)  # 每次都新建连接，开销大
+
+# ✅ 正确：使用连接池（同步版）
+class RedisPool:
+    _instance = None
+    
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+            cls._instance.pool = redis.ConnectionPool(
+                host='localhost',
+                port=6379,
+                max_connections=50,
+                decode_responses=True
+            )
+        return cls._instance
+    
+    def get_client(self):
+        return redis.Redis(connection_pool=self.pool)
+
+# 使用示例
+redis_pool = RedisPool()
+r1 = redis_pool.get_client()
+r2 = redis_pool.get_client()  # 复用连接
+
+# ✅ 高级：阻塞连接池（避免连接数爆炸）
+blocking_pool = BlockingConnectionPool(
+    host='localhost',
+    port=6379,
+    max_connections=20,
+    timeout=5,  # 等待连接超时时间
+    decode_responses=True
+)
+r = redis.Redis(connection_pool=blocking_pool)
+```
+
+### 2. 管道批处理
+
+```python
+import time
+
+r = redis.Redis(decode_responses=True)
+
+# ❌ 错误：逐个发送命令（N 次网络往返）
+start = time.time()
+for i in range(1000):
+    r.set(f"key_{i}", f"value_{i}")
+print(f"逐个写入耗时: {time.time() - start:.2f}s")
+
+# ✅ 正确：使用管道批量发送（1 次网络往返）
+start = time.time()
+pipe = r.pipeline()
+for i in range(1000):
+    pipe.set(f"key_{i}", f"value_{i}")
+pipe.execute()
+print(f"管道批量写入耗时: {time.time() - start:.2f}s")
+
+# ✅ 事务性管道（原子操作）
+pipe = r.pipeline(transaction=True)
+pipe.incr("counter")
+pipe.incr("counter")
+pipe.incr("counter")
+result = pipe.execute()
+print(f"原子操作结果: {result}")
+```
+
+### 3. 异步客户端（高并发场景）
+
+```python
+import asyncio
+import redis.asyncio as redis
+
+class AsyncRedisClient:
+    """异步 Redis 客户端（适合 FastAPI/Sanic）"""
+    
+    def __init__(self, host='localhost', port=6379, max_connections=100):
+        self.pool = redis.ConnectionPool(
+            host=host,
+            port=port,
+            max_connections=max_connections,
+            decode_responses=True
+        )
+    
+    async def get(self, key):
+        async with redis.Redis(connection_pool=self.pool) as client:
+            return await client.get(key)
+    
+    async def set(self, key, value, ex=None):
+        async with redis.Redis(connection_pool=self.pool) as client:
+            return await client.set(key, value, ex=ex)
+    
+    async def mget(self, keys):
+        async with redis.Redis(connection_pool=self.pool) as client:
+            return await client.mget(keys)
+    
+    async def pipeline_execute(self, commands):
+        """批量执行命令"""
+        async with redis.Redis(connection_pool=self.pool) as client:
+            pipe = client.pipeline()
+            for cmd, args, kwargs in commands:
+                getattr(pipe, cmd)(*args, **kwargs)
+            return await pipe.execute()
+
+# 使用示例
+async def main():
+    client = AsyncRedisClient()
+    
+    # 并发执行
+    tasks = [
+        client.set(f"key_{i}", f"value_{i}")
+        for i in range(100)
+    ]
+    await asyncio.gather(*tasks)
+    
+    # 批量获取
+    values = await client.mget([f"key_{i}" for i in range(10)])
+    print(values)
+
+# asyncio.run(main())
+```
+
+---
+
+## 六、配置优化
+
+### 1. Redis 核心配置优化
+
+```conf
+# redis.conf 生产环境优化配置
+
+# ========== 网络优化 ==========
+# 最大客户端连接数（根据 ulimit 调整）
+maxclients 10000
+
+# TCP 心跳（防止死连接）
+tcp-keepalive 300
+
+# 请求超时（秒）
+timeout 0  # 0=不超时，根据业务调整
+
+# ========== 内存优化 ==========
+# 最大内存限制（必须设置！）
+maxmemory 4gb
+
+# 内存淘汰策略（重要！）
+# volatile-lru: 从已设置过期时间的 key 中淘汰最近最少使用
+# allkeys-lru: 从所有 key 中淘汰最近最少使用（推荐）
+# volatile-ttl: 淘汰剩余时间最短的
+# noeviction: 不淘汰，写入时报错（不推荐）
+maxmemory-policy allkeys-lru
+
+# 内存淘汰采样数（越大越精确，CPU 消耗越高）
+maxmemory-samples 10
+
+# ========== 持久化优化 ==========
+# 关闭 RDB（如果只用 AOF）
+# save ""
+
+# AOF 每秒同步（平衡性能和安全）
+appendfsync everysec
+
+# 重写时不同步（避免磁盘 I/O 阻塞）
+no-appendfsync-on-rewrite yes
+
+# ========== 延迟优化 ==========
+# 关闭 THP（透明大页，造成延迟抖动）
+# 系统命令：echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
+# 设置后台任务线程数（Redis 6.0+）
+io-threads 4
+io-threads-do-reads yes
+
+# ========== 慢查询优化 ==========
+slowlog-log-slower-than 10000  # 10ms
+slowlog-max-len 1000
+
+# ========== 其他 ==========
+# 关闭命名空间检查（提升性能）
+latency-monitor-threshold 0
+
+# 设置数据库数量（减少默认值，节省内存）
+databases 16
+```
+
+### 2. 系统层面优化
+
+```bash
+#!/bin/bash
+# redis_system_optimize.sh
+
+# 1. 内核参数优化
+cat >> /etc/sysctl.conf <<EOF
+# Redis 优化参数
+net.core.somaxconn = 1024
+vm.overcommit_memory = 1
+net.ipv4.tcp_max_syn_backlog = 4096
+net.core.netdev_max_backlog = 2000
+EOF
+
+sysctl -p
+
+# 2. 关闭透明大页（重要！）
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
+# 3. 调整进程限制
+echo "redis soft nofile 65535" >> /etc/security/limits.conf
+echo "redis hard nofile 65535" >> /etc/security/limits.conf
+
+# 4. 禁用 swap（Redis 不要使用 swap）
+swapoff -a
+# 永久禁用在 /etc/fstab 中注释 swap 行
+
+# 5. CPU 绑定（将 Redis 绑定到指定核心）
+taskset -c 0,1 redis-server  # 绑定到 CPU 0 和 1
+```
+
+---
+
+## 七、监控与诊断
+
+### 1. 实时性能监控脚本
+
+```python
+#!/usr/bin/env python3
+# redis_performance_monitor.py
+
+import redis
+import time
+import json
+from datetime import datetime
+
+class RedisMonitor:
+    def __init__(self, host='localhost', port=6379):
+        self.r = redis.Redis(host=host, port=port, decode_responses=True)
+    
+    def collect_metrics(self):
+        """收集性能指标"""
+        info = self.r.info()
+        stats = {
+            'timestamp': datetime.now().isoformat(),
+            
+            # 连接指标
+            'connected_clients': info['connected_clients'],
+            'blocked_clients': info['blocked_clients'],
+            'rejected_connections': info['rejected_connections'],
+            
+            # 命令指标
+            'total_commands_processed': info['total_commands_processed'],
+            'instantaneous_ops_per_sec': info['instantaneous_ops_per_sec'],
+            
+            # 内存指标
+            'used_memory_human': info['used_memory_human'],
+            'used_memory_peak_human': info['used_memory_peak_human'],
+            'mem_fragmentation_ratio': info['mem_fragmentation_ratio'],
+            'evicted_keys': info['evicted_keys'],
+            
+            # 命中率
+            'keyspace_hits': info['keyspace_hits'],
+            'keyspace_misses': info['keyspace_misses'],
+            'hit_rate': self._calc_hit_rate(info),
+            
+            # 延迟指标
+            'instantaneous_input_kbps': info['instantaneous_input_kbps'],
+            'instantaneous_output_kbps': info['instantaneous_output_kbps'],
+            
+            # CPU 指标
+            'used_cpu_sys': info['used_cpu_sys'],
+            'used_cpu_user': info['used_cpu_user'],
+        }
+        
+        return stats
+    
+    def _calc_hit_rate(self, info):
+        """计算缓存命中率"""
+        hits = info['keyspace_hits']
+        misses = info['keyspace_misses']
+        total = hits + misses
+        if total == 0:
+            return 0
+        return round(hits / total * 100, 2)
+    
+    def check_alerts(self, stats):
+        """检查告警条件"""
+        alerts = []
+        
+        # 内存碎片率过高
+        if stats['mem_fragmentation_ratio'] > 1.5:
+            alerts.append(f"内存碎片率过高: {stats['mem_fragmentation_ratio']}")
+        
+        # 命中率过低
+        if stats['hit_rate'] < 80:
+            alerts.append(f"缓存命中率过低: {stats['hit_rate']}%")
+        
+        # 连接数过多
+        if stats['connected_clients'] > 1000:
+            alerts.append(f"连接数过多: {stats['connected_clients']}")
+        
+        # QPS 过高
+        if stats['instantaneous_ops_per_sec'] > 50000:
+            alerts.append(f"QPS 过高: {stats['instantaneous_ops_per_sec']}")
+        
+        return alerts
+    
+    def monitor(self, interval=5):
+        """持续监控"""
+        print("开始监控 Redis 性能...")
+        print("=" * 80)
+        
+        while True:
+            try:
+                stats = self.collect_metrics()
+                
+                # 打印关键指标
+                print(f"\n[{stats['timestamp']}]")
+                print(f"  QPS: {stats['instantaneous_ops_per_sec']:,}")
+                print(f"  连接数: {stats['connected_clients']}/{stats['rejected_connections']}")
+                print(f"  内存: {stats['used_memory_human']} (峰值: {stats['used_memory_peak_human']})")
+                print(f"  命中率: {stats['hit_rate']}%")
+                print(f"  碎片率: {stats['mem_fragmentation_ratio']}")
+                
+                # 告警检查
+                alerts = self.check_alerts(stats)
+                for alert in alerts:
+                    print(f"  ⚠ 告警: {alert}")
+                
+                time.sleep(interval)
+                
+            except KeyboardInterrupt:
+                print("\n监控停止")
+                break
+            except Exception as e:
+                print(f"监控错误: {e}")
+                time.sleep(5)
+
+# 运行监控
+if __name__ == '__main__':
+    monitor = RedisMonitor()
+    monitor.monitor(interval=3)
+```
+
+### 2. 性能压测工具
+
+```bash
+# 使用 redis-benchmark 压测
+
+# 1. 基础压测（100个并发，10万请求）
+redis-benchmark -h 127.0.0.1 -p 6379 -c 100 -n 100000
+
+# 2. 测试不同命令
+redis-benchmark -t set,get,lpush,lpop -c 50 -n 50000
+
+# 3. 测试管道模式
+redis-benchmark -P 16 -c 50 -n 50000
+
+# 4. 使用脚本压测特定场景
+redis-benchmark -c 50 -n 100000 script load "redis.call('set', KEYS[1], ARGV[1])"
+```
+
+### 3. Python 压测工具
+
+```python
+import redis
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+class RedisBenchmark:
+    def __init__(self, host='localhost', port=6379):
+        self.r = redis.Redis(host=host, port=port, decode_responses=True)
+    
+    def test_set(self, key_prefix, count):
+        """测试 SET 性能"""
+        start = time.time()
+        for i in range(count):
+            self.r.set(f"{key_prefix}:{i}", f"value_{i}")
+        elapsed = time.time() - start
+        qps = count / elapsed
+        return {'operation': 'SET', 'qps': round(qps, 2), 'elapsed': elapsed}
+    
+    def test_get(self, key_prefix, count):
+        """测试 GET 性能"""
+        start = time.time()
+        for i in range(count):
+            self.r.get(f"{key_prefix}:{i}")
+        elapsed = time.time() - start
+        qps = count / elapsed
+        return {'operation': 'GET', 'qps': round(qps, 2), 'elapsed': elapsed}
+    
+    def test_pipeline(self, key_prefix, count, batch_size=100):
+        """测试 Pipeline 性能"""
+        start = time.time()
+        for batch_start in range(0, count, batch_size):
+            pipe = self.r.pipeline()
+            for i in range(batch_start, min(batch_start + batch_size, count)):
+                pipe.set(f"{key_prefix}:{i}", f"value_{i}")
+            pipe.execute()
+        elapsed = time.time() - start
+        qps = count / elapsed
+        return {'operation': 'PIPELINE', 'qps': round(qps, 2), 'elapsed': elapsed}
+    
+    def run_benchmark(self, count=10000):
+        """运行完整压测"""
+        print(f"开始压测，共 {count} 次操作")
+        print("=" * 50)
+        
+        # 准备数据
+        self.r.flushdb()
+        
+        # 测试 SET
+        result = self.test_set("bench", count)
+        print(f"SET: {result['qps']} QPS, 耗时 {result['elapsed']:.2f}s")
+        
+        # 测试 GET
+        result = self.test_get("bench", count)
+        print(f"GET: {result['qps']} QPS, 耗时 {result['elapsed']:.2f}s")
+        
+        # 测试 Pipeline
+        result = self.test_pipeline("pipeline", count, batch_size=1000)
+        print(f"PIPELINE: {result['qps']} QPS, 耗时 {result['elapsed']:.2f}s")
+
+# 运行压测
+benchmark = RedisBenchmark()
+benchmark.run_benchmark(count=50000)
+```
+
+---
+
+## 八、优化检查清单
+
+### 快速诊断脚本
+
+```bash
+#!/bin/bash
+# redis_quick_check.sh
+
+echo "Redis 性能快速检查"
+echo "==================="
+
+# 1. 检查延迟
+redis-cli --latency
+
+# 2. 检查慢查询
+redis-cli SLOWLOG GET 5
+
+# 3. 检查内存碎片率
+redis-cli INFO memory | grep mem_fragmentation_ratio
+
+# 4. 检查是否有大 key
+redis-cli --bigkeys
+
+# 5. 检查命中率
+redis-cli INFO stats | grep -E "keyspace_(hits|misses)"
+
+# 6. 检查连接数
+redis-cli INFO clients | grep connected_clients
+
+# 7. 检查持久化状态
+redis-cli INFO persistence | grep -E "rdb_last_bgsave_status|aof_last_rewrite_status"
+
+# 8. 检查系统参数
+cat /sys/kernel/mm/transparent_hugepage/enabled
+ulimit -n
+```
+
+---
+
+## 九、优化效果对比
+
+| 优化项 | 优化前 | 优化后 | 提升 |
+|--------|--------|--------|------|
+| 逐个命令 vs Pipeline | 5000 QPS | 50000 QPS | **10倍** |
+| 大 Key 拆分 | 延迟 500ms | 延迟 5ms | **100倍** |
+| 连接池复用 | 每次 2ms | 每次 0.1ms | **20倍** |
+| 内存压缩存储 | 100MB | 30MB | **节省 70%** |
+| 合理淘汰策略 | OOM 错误 | 稳定运行 | **0 宕机** |
+
+需要我补充**故障排查实战**或**集群性能调优**部分吗？
+
+
+
+
+## 三、 缓存高并发“三座大山”
+在处理大规模并发时，必须针对以下三个场景设计防御方案：
+1.  缓存穿透：查询不存在的数据，请求直达数据库。方案：使用布隆过滤器。
+2.  缓存击穿：极热点 Key 过期的瞬间，海量请求冲垮数据库。方案：设置逻辑不过期或使用互斥锁。
+3.  缓存雪崩：大量 Key 同时过期或 Redis 宕机。方案：过期时间增加随机扰动值 (TTL + Random)。
+
+## 四、 生产环境避坑与优化指南
+### 1. 扫描与遍历
+   严禁使用 `KEYS `：该命令会阻塞主线程，导致线上业务停滞[cite: 2, 3]。
+   推荐使用 `SCAN`：基于游标的增量式扫描，不会阻塞请求[cite: 2, 3]。
+       例子：`SCAN 0 MATCH user: COUNT 100`[cite: 3]。
+
+### 2. 连接池 (Connection Pooling) 优化
+   必要性：避免频繁的 TCP 三次握手开销，保护 Redis 连接数。
+   选型：
+       Jedis：直连模式，每个线程需占用一个物理连接。
+       Lettuce：基于 Netty 实现了多路复用，多线程可共享一个连接，性能更优。
+
+### 3. BigKey 治理
+   定义：单个 String 过大（如 >5MB）或集合元素过多（如 >5000 个）。
+   危害：会导致删除延迟、网络阻塞。
+   对策：对 BigKey 进行拆分存储，或使用 `UNLINK` 异步删除。
+
+
