@@ -7,4 +7,5 @@ __pycache__
 .gitignore
 .env
 tests/
+data/
 README.md
