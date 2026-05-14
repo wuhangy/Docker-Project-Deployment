@@ -1,35 +1,79 @@
 version: '2.2'
 
 services:
-  # 1. 数据库服务
-  db:
+  # 1. Redis 数据库（缓存/会话）
+  redis:
     image: redis:alpine
-    container_name: takeout-db
+    container_name: takeout-redis
     volumes:
-      - ./data:/data  # 数据持久化：把容器里的数据存到本地 data 文件夹
-    command: redis-server --appendonly yes # 开启 AOF 持久化模式
+      - ./redis-data:/data
+    command: redis-server --appendonly yes
     networks:
       - takeout-net
 
-  # 2. 后端 API 服务
+  # 2. MySQL 数据库（主数据库）
+  mysql:
+    image: mysql:8.0
+    container_name: takeout-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: takeout_db
+      MYSQL_USER: takeout_user
+      MYSQL_PASSWORD: takeout_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - takeout-net
+
+  # 3. 后端 API 服务
   backend:
     build: ./backend
     container_name: takeout-api
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend:/app  # 添加后端热更新
     depends_on:
-      - db
+      - redis
+      - mysql
+    environment:
+      REDIS_HOST: redis
+      MYSQL_HOST: mysql
+      MYSQL_USER: takeout_user
+      MYSQL_PASSWORD: takeout_pass
+      MYSQL_DATABASE: takeout_db
     networks:
       - takeout-net
 
-  # 3. 前端 Web 服务
+  # 4. 前端 Web 服务
   frontend:
     build: ./frontend
     container_name: takeout-web
     ports:
       - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro  # 添加这行，实时同步前端文件
     depends_on:
       - backend
+    networks:
+      - takeout-net
+
+  # 5. phpMyAdmin（可选，方便管理 MySQL）
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: takeout-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
     networks:
       - takeout-net
 

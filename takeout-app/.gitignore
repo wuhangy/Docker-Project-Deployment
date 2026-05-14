@@ -1,1 +1,58 @@
+# 数据目录（不提交）
+mysql-data/
+redis-data/
+*.db
+*.sqlite
+
+# 备份文件
+*.backup
+*.bak
+*.old
+
+# Docker 相关
+*.log
+*.pid
+
+# Python 相关
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 环境变量
+.env
+.env.local
+
+# 临时文件
+temp/
+tmp/
+*.tmp
+
+# 配置文件（包含敏感信息）
+mysql-config.cnf
+
+# Docker 数据目录
 data/
+mysql-data/
+redis-data/
+*.db
+*.sqlite
+
+# 临时 SQL 文件
+*.sql
+!init.sql
+!seed.py
+takeout-app/backend/data.sql
